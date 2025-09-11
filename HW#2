@@ -1,0 +1,62 @@
+Econometrics - Homework #2
+EGE YANIK
+09.11.2025
+1) Group Members:
+•	Aqeel Choudhury
+•	Heidy Collado, 
+•	Riyesh nath
+2) Dice Experiment in The Class:
+•	Number of Total Roll: 360
+•	Number of 6 that came up: 66/360
+
+Dice Numbers	1	2	3	4	5	6	Average
+Number of came up	49	63	58	64	60	66	60
+Share in the total roll	14%	18%	16%	18%	17%	18%	17%
+
+In our experiment, we rolled a six-sided die 360 times and recorded the frequency of each outcome. For a fair die, the expected number of occurrences for each face is 60. The observed frequencies ranged between 49 and 66, with the largest deviation occurring for the face “1,” which appeared only 49 times. To formally test fairness, we applied a chi-square goodness-of-fit test. The test statistic was calculated as 3.11 with five degrees of freedom. Since this value falls well below the critical threshold of 11.07 at the 5% significance level, we cannot reject the null hypothesis that the die is fair. Thus, despite minor variations in frequencies, the die’s outcomes are consistent with randomness and fairness.
+Something Interesting:
+An interesting feature of this experiment lies in the apparent imbalance in the short run, particularly the lower occurrence of the face “1.” While such results may suggest bias to the casual observer, statistical analysis reveals that these deviations fall within the expected range of random variation. This illustrates a key principle in probability and econometrics: the law of large numbers ensures that, as the number of trials increases, the observed distribution converges toward the theoretical probability.
+
+3) Shuffle Experiment: 
+I created a playlist on the Spotify music app and shuffled the songs. I then advanced the songs and recorded the results. Using the results, I performed statistical calculations in Rstudio and interpreted the results. Details of my work are provided below.
+
+Experimental setup
+•	Music App: Spotify
+•	Playlist: 56 tracks total, deliberately mixed:
+o	Genres: Pop, Rock, Hip-Hop, Electronic
+o	Artists: 8 total (2 per genre; one very famous + one less mainstream)
+o	Counts: 7 songs per artist
+o	Ratings: 1–5 scale
+•	Data collection: Enabled “Shuffle” and recorded the first 56 plays in order (no manual skips). Logged Track / Artist / Album / Genre / Rating.
+
+Hypotheses and test statistics:
+
+Primary test (artist clumping)
+•	H0H_0H0: Play order is a uniform random permutation (no extra tendency to repeat the same artist back-to-back).
+•	H1H_1H1: There is clumping (more adjacent same-artist pairs than expected).
+
+Secondary checks
+•	Same idea for albums and genres (adjacent pairs).
+•	Rating bias: Are higher-rated tracks occurring earlier? (Spearman rank correlation between position and rating.)
+
+Inference method
+•	Monte Carlo permutation tests that preserve the observed label counts (e.g., same number of songs per artist), with 5,000 permutations for each null distribution.
+•	Report one-sided p-values for clumping (upper tail), and also the lower tail (anti-clumping) for completeness.
+Results (from your log of 56 songs)
+Adjacent pairs (observed K vs. null)
+•	Artist: observed K=4K=4K=4; null mean ≈6.05\approx 6.05≈6.05
+o	p (clumping, upper tail) = 0.871
+o	p (anti-clumping, lower tail) = 0.261
+•	Album: observed K=4K=4K=4; p (upper) = 0.489
+•	Genre: observed K=11K=11K=11; p (upper) = 0.788
+
+Rating bias
+•	Spearman ρ\rhoρ between position (1=earliest) and rating = −0.031
+•	Two-sided p ≈ 0.822 (no evidence that higher-rated songs are pushed earlier)
+Interpretation
+•	For artist clumping, my observed value (4) is actually below the random expectation (~6), but not significantly so.
+•	Album and genre adjacency are similarly indistinguishable from random.
+•	Ratings do not predict earlier play positions.
+
+Conclusion
+With this 56-song session, we fail to reject the null that the app’s shuffle is a uniform random permutation. There is no statistical evidence of the shuffle “getting stuck” on the same artist/album, nor of any rating-based prioritization.
