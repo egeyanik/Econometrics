@@ -1,0 +1,100 @@
+set.seed(2025)
+
+library(dplyr)
+library(readxl)
+library(tibble)
+
+PATH <- "Shuffle Experiment.xls"
+df <- read_excel(PATH, sheet = 1)
+
+names(df) <- tolower(gsub("\\s+", "_", names(df)))
+if (!"order" %in% names(df)) {
+  if ("track" %in% names(df)) names(df)[names(df)=="track"] <- "order"
+  if ("position" %in% names(df)) names(df)[names(df)=="position"] <- "order"
+}
+if (!"song_title" %in% names(df)) {
+  if ("title" %in% names(df)) names(df)[names(df)=="title"] <- "song_title"
+  if ("song" %in% names(df)) names(df)[names(df)=="song"] <- "song_title"
+  if ("track_name" %in% names(df)) names(df)[names(df)=="track_name"] <- "song_title"
+}
+if (!"rating" %in% names(df)) {
+  if ("rate" %in% names(df)) names(df)[names(df)=="rate"] <- "rating"
+  if ("stars" %in% names(df)) names(df)[names(df)=="stars"] <- "rating"
+}
+
+df <- df %>% arrange(order)
+df$rating <- suppressWarnings(as.numeric(df$rating))
+
+adjacent_same_count <- function(x) {
+  x <- as.character(x)
+  if (length(x) < 2) return(0L)
+  sum(x[-1] == x[-length(x)])
+}
+
+perm_null_adjacent <- function(labels, B = 5000, seed = 1) {
+  set.seed(seed)
+  labels <- as.character(labels)
+  n <- length(labels)
+  replicate(B, {
+    a <- sample(labels, n, replace = FALSE)
+    sum(a[-1] == a[-n])
+  })
+}
+
+p_upper <- function(observed, null) (sum(null >= observed) + 1) / (length(null) + 1)
+p_lower <- function(observed, null) (sum(null <= observed) + 1) / (length(null) + 1)
+
+expected_adjacent <- function(labels) {
+  N <- length(labels)
+  tab <- table(labels)
+  (sum(tab * (tab - 1))) / N
+}
+
+spearman_perm_p <- function(pos, rating, B = 5000, seed = 99) {
+  ok <- is.finite(rating)
+  pos <- pos[ok]; rating <- rating[ok]
+  if (length(pos) < 3) return(list(rho = NA_real_, p_two = NA_real_))
+  obs <- suppressWarnings(cor(pos, rating, method = "spearman"))
+  set.seed(seed)
+  null <- replicate(B, {
+    rperm <- sample(rating, length(rating), replace = FALSE)
+    suppressWarnings(cor(pos, rperm, method = "spearman"))
+  })
+  p_two <- (sum(abs(null) >= abs(obs)) + 1) / (B + 1)
+  list(rho = unname(obs), p_two = p_two)
+}
+
+N <- nrow(df)
+positions <- seq_len(N)
+
+K_art_obs  <- adjacent_same_count(df$artist)
+K_art_null <- perm_null_adjacent(df$artist, B = 5000, seed = 11)
+E_art      <- expected_adjacent(df$artist)
+p_art_up   <- p_upper(K_art_obs,  K_art_null)
+p_art_down <- p_lower(K_art_obs,  K_art_null)
+
+K_alb_obs  <- adjacent_same_count(df$album)
+K_alb_null <- perm_null_adjacent(df$album,  B = 5000, seed = 12)
+E_alb      <- expected_adjacent(df$album)
+p_alb_up   <- p_upper(K_alb_obs,  K_alb_null)
+p_alb_down <- p_lower(K_alb_obs,  K_alb_null)
+
+K_gen_obs  <- adjacent_same_count(df$genre)
+K_gen_null <- perm_null_adjacent(df$genre,  B = 5000, seed = 13)
+E_gen      <- expected_adjacent(df$genre)
+p_gen_up   <- p_upper(K_gen_obs,  K_gen_null)
+p_gen_down <- p_lower(K_gen_obs,  K_gen_null)
+
+sp <- spearman_perm_p(positions, df$rating, B = 5000, seed = 21)
+
+results <- tibble(
+  test = c("adjacent_same_artist","adjacent_same_album","adjacent_same_genre",
+           "position_vs_rating_spearman"),
+  observed = c(K_art_obs, K_alb_obs, K_gen_obs, sp$rho),
+  expected_under_H0 = c(E_art, E_alb, E_gen, 0),
+  p_upper_clumping  = c(p_art_up, p_alb_up, p_gen_up, NA),
+  p_lower_anti      = c(p_art_down, p_alb_down, p_gen_down, NA),
+  p_two_sided       = c(NA, NA, NA, sp$p_two)
+)
+
+print(results)
