@@ -1,0 +1,56 @@
+Econometrics - Homework #3
+EGE YANIK
+09.18.2025
+1) Group Members:
+•	Aqeel Choudhury
+•	Aqib Shahzad, 
+•	Ege Yanik
+#R Codes
+
+load("d_HHP2020_24.RData") 
+
+str(d_HHP2020_24)
+
+aggregate(income_midpoint ~ Mar_Stat, data = d_HHP2020_24, mean)
+
+boxplot(income_midpoint ~ Mar_Stat, data = d_HHP2020_24,
+        main = "Income by Marital Status",
+        xlab = "Marital Status", ylab = "Income (midpoint)")
+
+
+t.test(income_midpoint ~ Mar_Stat, data = d_HHP2020_24)
+
+
+anova_result <- aov(income_midpoint ~ Mar_Stat, data = d_HHP2020_24)
+summary(anova_result)
+
+
+library(ggplot2)
+ggplot(d_HHP2020_24, aes(x = Mar_Stat, y = income_midpoint, fill = Mar_Stat)) +
+  geom_boxplot() +
+  labs(title = "Income vs. Marital Status",
+       x = "Marital Status", y = "Income (midpoint)")
+
+library(janitor)
+d <- janitor::clean_names(d_HHP2020_24)
+
+#    (after clean_names(): income_midpoint, mar_stat)
+stopifnot(all(c("income_midpoint","mar_stat") %in% names(d)))
+
+d$mar_stat <- factor(
+  d$mar_stat,
+  levels = c("Married", "widowed", "divorced", "separated", "never"))
+
+boxplot(
+  income_midpoint ~ mar_stat,
+  data   = d,
+  col    = "grey85",      # grey box fill (like your figure)
+  border = "black",
+  xlab   = "Marital Status",
+  ylab   = "Income (midpoint)",
+  main   = "Income by Marital Status",
+  outline = TRUE          # show outliers as points)
+
+# what I’ve learned
+
+The boxplot shows a striking “marriage premium” in income: the Married group’s median sits far above all others around the low-to-mid six figures while widowed, divorced, and separated cluster near a much lower median (roughly the $35–45k range). Never-married appears modestly higher than those three but still well below married. Dispersion is also largest for the married group, suggesting both higher typical earnings and more variability within marriages. Notably, every status has a few very high-income outliers, so top earners exist across categories even if they’re rare. A caveat: because age, education, and gender likely differ systematically across these groups (e.g., widowed skew older, never-married younger), part of the observed marriage premium could reflect these confounders rather than marital status itself.
