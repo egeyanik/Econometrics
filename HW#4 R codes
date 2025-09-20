@@ -1,0 +1,161 @@
+Econometrics - Homework #4
+EGE YANIK
+09.20.2025
+1) Group Members:
+•	Federico Ciandri,
+•	Heidey Collado, 
+•	Nasrin
+
+#R Codes Inputs
+
+library(tidyverse)
+library(ggplot2)
+getwd()
+setwd("C:/Users/USER/Desktop/Rdata")
+getwd()
+load("d_HHP2020_24.Rdata")
+summary(d_HHP2020_24$income_midpoint)
+summary(d_HHP2020_24$income_midpoint_factor)
+# might want to plot a more modestly sized dataset, to start
+HHP_NY <- d_HHP2020_24 %>% filter(State == "New York")
+# or compare NY & NJ
+HHP_NY_NJ <- d_HHP2020_24 %>% filter((State == "New York") | (State == "New Jersey") )
+p <- ggplot(data = HHP_NY_NJ,
+            mapping = aes(x = Education, fill = State))
+p + geom_bar()
+p + geom_bar(position = "fill") # meh
+p + geom_bar(mapping = aes(
+  y = after_stat(prop),
+  group = State))
+p + geom_bar(position = "dodge",
+             mapping = aes(
+               y = after_stat(prop),
+               group = State)) # now compares the 2 histograms, might be useful
+d_HHP2020_24$partnered <- (d_HHP2020_24$Mar_Stat == "Married") |
+  (d_HHP2020_24$Mar_Stat == "widowed") |
+  (d_HHP2020_24$Mar_Stat == "divorced") |
+  (d_HHP2020_24$Mar_Stat == "separated")
+# if ever partnered
+xtabs( ~ Mar_Stat + partnered, data = d_HHP2020_24) # just to check
+HHP_NY_NJ_under45 <- HHP_NY_NJ %>% filter(Age < 45)
+HHP_NY_NJ_under45$Age_groups <- cut(HHP_NY_NJ_under45$Age,
+                                    breaks = c(-Inf, 24.5, 29.5, 34.5, 39.5, Inf),
+                                    labels = c("under 25","25 to 29","30 to 34","35 to 39", "40 to 44"))
+
+HHP_NY_NJ_under45 %>% group_by(Age_groups) %>% summarize(mn = mean(Age))
+p_MS_Age <- ggplot(data = HHP_NY_NJ_under45,
+                   mapping = aes(x = Age_groups, fill = Mar_Stat))
+p_MS_Age + geom_bar(position = "stack", stat = "count")
+d_HHP2020_24$partnered <- (d_HHP2020_24$Mar_Stat == "Married") |
+  (d_HHP2020_24$Mar_Stat == "widowed") |
+  (d_HHP2020_24$Mar_Stat == "divorced") |
+  (d_HHP2020_24$Mar_Stat == "separated")
+library(ggplot2)
+ggplot(d_HHP2020_24, aes(x = Mar_Stat, y = income_midpoint, fill = Mar_Stat)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Income Distribution by Marital Status",
+       x = "Marital Status", y = "Income (midpoint)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+ggplot(d_HHP2020_24, aes(x = Mar_Stat, y = income_midpoint, fill = Mar_Stat)) +
+  geom_violin(trim = FALSE, alpha = 0.5) +
+  geom_boxplot(width = 0.15, outlier.shape = NA) +
+  labs(title = "Income Distribution by Marital Status",
+       x = "Marital Status", y = "Income (midpoint)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+library(dplyr)
+d_HHP2020_24 %>%
+  group_by(Mar_Stat) %>%
+  summarise(mean_income = mean(income_midpoint, na.rm = TRUE)) %>%
+  ggplot(aes(x = Mar_Stat, y = mean_income, fill = Mar_Stat)) +
+  geom_col() +
+  labs(title = "Average Income by Marital Status",
+       x = "Marital Status", y = "Average Income (midpoint)") +
+  theme_minimal() +
+  theme(legend.position = "none")
+library(dplyr)
+d_HHP2020_24 %>%
+  group_by(Region, Mar_Stat) %>%
+  summarise(mean_income = mean(income_midpoint, na.rm = TRUE)) %>%
+  ggplot(aes(x = Mar_Stat, y = mean_income, fill = Region)) +
+  geom_col(position = position_dodge()) +
+  labs(title = "Average Income by Marital Status and Region",
+       x = "Marital Status", y = "Average Income (midpoint)") +
+  theme_minimal()
+library(dplyr)
+library(ggplot2)
+library(scales)  # for comma formatting
+d_HHP2020_24 %>%
+  group_by(Region, Mar_Stat) %>%
+  summarise(mean_income = mean(income_midpoint, na.rm = TRUE)) %>%
+  ggplot(aes(x = Mar_Stat, y = mean_income, fill = Region)) +
+  geom_col(position = position_dodge()) +
+  labs(title = "Average Income by Marital Status and Region",
+       x = "Marital Status", y = "Average Income (midpoint)") +
+  scale_y_continuous(labels = comma) +   # :point_left: This fixes the axis
+  theme_minimal()
+library(dplyr)
+library(ggplot2)
+library(scales)
+d_HHP2020_24 %>%
+  mutate(income_adjusted = ifelse(Mar_Stat == "Married", income_midpoint / 2, income_midpoint)) %>%
+  group_by(Region, Mar_Stat) %>%
+  summarise(mean_income = mean(income_adjusted, na.rm = TRUE)) %>%
+  ggplot(aes(x = Mar_Stat, y = mean_income, fill = Region)) +
+  geom_col(position = position_dodge()) +
+  labs(title = "Adjusted Average Income by Marital Status and Region",
+       x = "Marital Status", y = "Average Adjusted Income (midpoint)") +
+  scale_y_continuous(labels = comma) +
+  theme_minimal()
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+d_HHP2020_24 <- d_HHP2020_24 %>%
+  mutate(income_adjusted = ifelse(Mar_Stat == "Married", income_midpoint / 2, income_midpoint))
+
+avg_data <- d_HHP2020_24 %>%
+  group_by(Region, Mar_Stat) %>%
+  summarise(mean_income = mean(income_adjusted, na.rm = TRUE))
+
+ggplot(avg_data, aes(x = Mar_Stat, y = mean_income, color = Region)) +
+  geom_point(size = 3, alpha = 0.8) +
+  labs(title = "Average Adjusted Income by Marital Status and Region",
+       x = "Marital Status",
+       y = "Average Adjusted Income") +
+  scale_y_continuous(labels = comma) +
+  theme_minimal() +
+  theme(legend.position = "right")
+library(dplyr)
+library(ggplot2)
+library(scales)
+
+d_HHP2020_24 <- d_HHP2020_24 %>%
+  mutate(income_adjusted = ifelse(Mar_Stat == "Married", income_midpoint / 2, income_midpoint))
+
+avg_data <- d_HHP2020_24 %>%
+  group_by(Region, State, Mar_Stat) %>%
+  summarise(mean_income = mean(income_adjusted, na.rm = TRUE), .groups = "drop")
+
+top_states <- avg_data %>%
+  group_by(Region, State) %>%
+  summarise(overall_mean = mean(mean_income, na.rm = TRUE), .groups = "drop") %>%
+  arrange(Region, desc(overall_mean)) %>%
+  group_by(Region) %>%
+  slice_head(n = 4) %>%
+  pull(State)
+
+avg_top4 <- avg_data %>%
+  filter(State %in% top_states)
+
+ggplot(avg_top4, aes(x = Mar_Stat, y = mean_income, color = State)) +
+  geom_point(size = 3, alpha = 0.8) +
+  facet_wrap(~ Region, scales = "free_y") +
+  labs(title = "Average Adjusted Income by Marital Status (Top 4 States per Region)",
+       x = "Marital Status", y = "Average Adjusted Income") +
+  scale_y_continuous(labels = comma) +
+  theme_minimal()
+
+# Results from the last lab
+Regional differences in adjusted income are very clear across the graph. In the South, the spread between marital statuses is the widest, with married individuals earning close to $90,000–$110,000 on average, while widowed or separated individuals earn considerably less. By contrast, the Northeast shows a much smaller gap, with incomes clustered more tightly between about $65,000 and $85,000, suggesting that income opportunities may be more evenly distributed across different marital statuses in that region. In the West, divorced and separated individuals display relatively higher incomes compared to their counterparts in other regions, while the Midwest generally shows lower incomes across all marital groups but with smaller disparities between them.
