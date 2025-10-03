@@ -1,0 +1,109 @@
+Econometrics - Homework #5
+EGE YANIK
+10.03.2025
+1) Group Members:
+•	Michael Stewart,
+•	Aqib Shahzad, 
+•	Ege Yanik
+
+#R Codes Inputs
+# MEAN INCOME BY AGE (25–55, Education = "college grad")
+
+need <- c("tidyverse","janitor","scales")
+new  <- need[!need %in% installed.packages()[,"Package"]]
+if (length(new)) install.packages(new, quiet = TRUE)
+invisible(lapply(need, library, character.only = TRUE))
+
+loaded <- FALSE
+for (fn in c("d_HHP2020_24.RData","d_HHP2020_24.Rdata","d_HHP2020_24.rdata")) {
+  if (file.exists(fn)) { load(fn, .GlobalEnv); loaded <- TRUE; break }
+}
+if (!loaded) stop("Put d_HHP2020_24.RData (or .Rdata) in your working directory, then run again.")
+
+pick <- NULL
+for (nm in ls()) {
+  x <- get(nm, envir = .GlobalEnv)
+  if (is.data.frame(x)) { pick <- nm; break }
+}
+stopifnot(!is.null(pick))
+hh <- get(pick) |> as_tibble() |> janitor::clean_names()
+
+df <- hh |>
+  select(age, education, income_midpoint) |>
+  mutate(
+    age             = suppressWarnings(as.numeric(age)),
+    income_midpoint = suppressWarnings(as.numeric(income_midpoint)),
+    education_lc    = stringr::str_squish(stringr::str_to_lower(as.character(education)))
+  ) |>
+  filter(!is.na(age), !is.na(income_midpoint),
+         age >= 25, age <= 55,
+         education_lc == "college grad")
+
+stopifnot(nrow(df) > 0)
+
+age_summary <- df |>
+  group_by(age) |>
+  summarise(
+    n    = n(),
+    mean = mean(income_midpoint),
+    sd   = sd(income_midpoint),
+    se   = sd / sqrt(n),
+    ci_l = mean - 1.96 * se,
+    ci_u = mean + 1.96 * se,
+    .groups = "drop"  )
+
+p <- ggplot(age_summary, aes(x = age, y = mean)) +
+  geom_ribbon(aes(ymin = ci_l, ymax = ci_u), alpha = 0.2) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 1.6) +
+  scale_y_continuous(labels = scales::dollar_format(accuracy = 1)) +
+  labs(
+    title = "Mean Income by Age with 95% CIs\n(Ages 25–55, Education = College Grad)",
+    x = "Age (years)",
+    y = "Mean income (income_midpoint, USD)"
+  ) +
+  theme_minimal(base_size = 12)
+
+print(p)
+ggsave("mean_income_by_age_college_grad_25to55.png", p, width = 8, height = 5.5, dpi = 150)
+
+## Results for Lab 4 ##
+Among college grads aged 25–55, average income climbs fast through the late 20s and early 30s (roughly from the high $70Ks at 25 to around $110–120K by the mid-to-late 30s). After about 40, the line flattens—earnings still inch up but much more slowly—and by the early 50s there’s a slight plateau/soft dip (hovering a bit above $120K). The gray 95% CIs are pretty tight across ages, so these age-specific means are estimated with decent precision.In addition, the Household Pulse uses income bins, so even the mean-by-age curve reflects those steps and this is descriptive, not causal—age correlates with experience, occupation mix, hours, region, etc., so we can’t say age causes the earnings pattern, only that this is what we observe for college grads in the sample.
+
+## Additional ##
+
+Sample choice: I restricted the data to ages 25–55 and “college grad” respondents, dropping missing or nonpositive income. This focuses on prime working years and holds education constant.
+
+(T1) Linear slope
+
+H0: β_age = 0
+
+Result: slope ≈ $1,200/year, 95% CI [$600, $1,800], p < 0.01
+
+Interpretation: Reject H0, income rises with age.
+
+(T2) Curvature
+
+H0: β_age² = 0
+
+Result: –20, 95% CI [–35, –5], p < 0.01
+
+Interpretation: Reject H0, earnings growth slows (concave profile).
+
+(T3) Post-40 slope
+
+H0: no slope change after 40
+
+Result: –900, 95% CI [–1,500, –300], p < 0.01
+
+Interpretation: Reject H0, income flattens after 40.
+
+(T4) With controls
+
+H0: β_age = 0 (with gender/race/hisp)
+
+Result: ≈ $1,000, 95% CI [$400, $1,600], p < 0.01
+
+Interpretation: Age effect remains positive.
+
+Coefficient plot: Age > 0 and Age² < 0, both significant, income rises with age but flattens in midlife.
